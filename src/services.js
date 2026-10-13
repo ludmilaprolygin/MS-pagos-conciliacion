@@ -1,12 +1,19 @@
 import { config } from './config.js';
-import { buildConciliation } from './conciliation.js';
+import { buildConciliation, isInconsistent, toInconsistency } from './conciliation.js';
+
+export class RemoteServiceError extends Error {
+  constructor(status, url) {
+    super(`Servicio remoto respondió ${status}: ${url}`);
+    this.status = status;
+  }
+}
 
 async function getJson(url) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
   try {
     const response = await fetch(url, { signal: controller.signal });
-    if (!response.ok) throw new Error(`Servicio remoto respondió ${response.status}: ${url}`);
+    if (!response.ok) throw new RemoteServiceError(response.status, url);
     return await response.json();
   } finally {
     clearTimeout(timeout);
@@ -47,5 +54,5 @@ export async function findInconsistencies() {
   const payments = await getAllItems(config.pagosUrl);
   const orderIds = [...new Set(payments.map((payment) => payment.ordenId).filter(Boolean))];
   const results = await Promise.all(orderIds.map((orderId) => conciliateOrder(orderId)));
-  return results.filter((result) => result.inconsistencias.length > 0);
+  return results.filter(isInconsistent).map(toInconsistency);
 }

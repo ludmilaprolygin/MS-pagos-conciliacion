@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { config } from './config.js';
-import { conciliateOrder, findInconsistencies } from './services.js';
+import { conciliateOrder, findInconsistencies, RemoteServiceError } from './services.js';
 
 function sendJson(response, status, body) {
   response.writeHead(status, { 'content-type': 'application/json; charset=utf-8' });
@@ -12,7 +12,7 @@ const server = http.createServer(async (request, response) => {
   try {
     if (request.method === 'GET' && url.pathname === '/conciliacion/inconsistencias') {
       const items = await findInconsistencies();
-      return sendJson(response, 200, { total: items.length, inconsistencias: items });
+      return sendJson(response, 200, items);
     }
     const match = url.pathname.match(/^\/conciliacion\/([^/]+)$/);
     if (request.method === 'GET' && match) {
@@ -20,7 +20,8 @@ const server = http.createServer(async (request, response) => {
     }
     sendJson(response, 404, { error: 'Ruta no encontrada' });
   } catch (error) {
-    sendJson(response, 502, { error: error.message });
+    const status = error instanceof RemoteServiceError && error.status === 404 ? 404 : 502;
+    sendJson(response, status, { error: status === 404 ? 'Orden o pago no existe' : 'No se pudo conectar a los servicios remotos' });
   }
 });
 
