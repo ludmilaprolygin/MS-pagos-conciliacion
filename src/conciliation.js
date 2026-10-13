@@ -4,7 +4,7 @@ export function buildConciliation(order, payments) {
   const completedPayments = payments.filter((payment) => completedStatuses.includes(String(payment.estado || '').toLowerCase()));
   const totalPaid = completedPayments.reduce((sum, payment) => sum + Number(payment.monto || 0), 0);
   const paymentStatuses = payments.map((payment) => String(payment.estado || '').toLowerCase());
-  const hasRejectedOrPending = paymentStatuses.some((status) => ['pendiente', 'rechazado', 'rechazada'].includes(status));
+  const hasRejectedOrPending = paymentStatuses.some((status) => ['pendiente', 'rechazado', 'rechazada', 'reembolsado', 'cancelado'].includes(status));
   const amountMatches = totalPaid === totalOrder;
 
   return {
@@ -27,7 +27,7 @@ export function isInconsistent(result) {
 }
 
 export function toInconsistency(result) {
-  const rejected = result.detalles.find((payment) => ['rechazado', 'rechazada'].includes(String(payment.estado || '').toLowerCase()));
+  const rejected = result.detalles.find((payment) => ['rechazado', 'rechazada', 'reembolsado', 'cancelado'].includes(String(payment.estado || '').toLowerCase()));
   const pending = result.detalles.find((payment) => String(payment.estado || '').toLowerCase() === 'pendiente');
   const payment = rejected || pending;
   const state = payment?.estado || (result.pagadoTotal === 0 ? 'pendiente' : 'parcial');
