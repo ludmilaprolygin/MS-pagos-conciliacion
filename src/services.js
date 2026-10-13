@@ -51,8 +51,19 @@ export async function conciliateOrder(orderId) {
 }
 
 export async function findInconsistencies() {
-  const payments = await getAllItems(config.pagosUrl);
-  const orderIds = [...new Set(payments.map((payment) => payment.ordenId).filter(Boolean))];
-  const results = await Promise.all(orderIds.map((orderId) => conciliateOrder(orderId)));
-  return results.filter(isInconsistent).map(toInconsistency);
+  // Trae ambos listados paginados y concilia en memoria, en lugar de pedir cada orden por separado
+  const [payments, orders] = await Promise.all([getAllItems(config.pagosUrl), getAllItems(config.ordenesUrl)]);
+  const ordersById = new Map(orders.map((order) => [order.id, order]));
+  const paymentsByOrder = new Map();
+  for (const payment of payments) {
+    if (!payment.ordenId) continue;
+    if (!paymentsByOrder.has(payment.ordenId)) paymentsByOrder.set(payment.ordenId, []);
+    paymentsByOrder.get(payment.ordenId).push(payment);
+  }
+
+  return [...paymentsByOrder]
+    .filter(([orderId]) => ordersById.has(orderId))
+    .map(([orderId, orderPayments]) => buildConciliation(ordersById.get(orderId), orderPayments))
+    .filter(isInconsistent)
+    .map(toInconsistency);
 }

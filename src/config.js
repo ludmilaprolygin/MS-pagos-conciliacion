@@ -18,5 +18,5 @@ export const config = {
   port: Number(env('PORT', '3000')),
   pagosUrl: env('PAGOS_URL', 'https://ms-pagos-5qjo.onrender.com').replace(/\/$/, ''),
   ordenesUrl: env('ORDENES_URL', 'https://orders-ms.onrender.com').replace(/\/$/, ''),
-  timeoutMs: Number(env('HTTP_TIMEOUT_MS', '10000'))
+  timeoutMs: Number(env('HTTP_TIMEOUT_MS', '60000'))
 };
